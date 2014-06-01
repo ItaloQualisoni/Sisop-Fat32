@@ -15,7 +15,7 @@ typedef struct  {
 	uint32_t size;
 }dir_entry;
 /* diretorios (incluindo ROOT), 128 entradas de diretorio
-com 32 bytes cada = 4096 bytes */
+com 32 bytes cada = 4096 bytes  */
 dir_entry dir[128];
 
 FILE  *memoria_fat;
