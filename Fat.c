@@ -54,7 +54,10 @@ void fillRootDir(){
 	for (i = 0; i < sizeof(dir) / sizeof(dir[0]); i++)
 	{
 		/* code */
-		dir_entry aux  = dir[i];
+		//dir[i].size = 0x55;
+		//dir[i].first_block = 0xff;
+		//dir[i].filename[i%15] = 0xff;
+
 	}
 	memoria_fat = fopen("fat.part","r+");
 	fseek(memoria_fat, 2*sizeof(boot), SEEK_SET);
