@@ -22,6 +22,7 @@ typedef struct  {
 
 /* diretorios (incluindo ROOT), 128 entradas de diretorio com 32 bytes cada = 4096 bytes  */
 dir_entry dir[128];
+int atualDirectory=2;//rootDir
 
 FILE  *memoria_fat;
 
@@ -105,11 +106,95 @@ void loadFat(){
 	fclose(memoria_fat);
 }
 
-void loadRootDir(){
+void loadDirectory(int fatPos){
+	atualDirectory = fatPos;
 	memoria_fat = fopen("fat.part","r+");
-	fseek(memoria_fat, CLUSTER*2, SEEK_SET);
+	fseek(memoria_fat, CLUSTER*fatPos, SEEK_SET);
 	fread(&dir, CLUSTER, 1, memoria_fat);
 	fclose(memoria_fat);
+}
+
+void saveDirectory(){
+	//atualDirectory
+}
+
+void saveFat(){
+
+}
+
+void loadRootDir(){
+	loadDirectory(2);
+}
+
+int searchFreePositionInFat(){
+	int i;
+	for(i=0; i < sizeof(fat)/ sizeof(fat[0]);i++){ //percorre todos os "arquivos" do diretorio corrente
+		if(fat[i]==0){
+			return i;
+		}
+	}
+	return -1;
+}
+
+int searchFreePosition(){
+	//Procura a primeira posição livre dentro da pasta corrente.
+	int i;
+	for(i=0; i < sizeof(dir)/ sizeof(dir[0]);i++){ //percorre todos os "arquivos" do diretorio corrente
+		if(dir[i].filename[0]==0){
+			return i;
+		}
+	}
+	return -1;
+}
+
+int lookupFile(char *name){
+	int i;	
+	for(i=0; i < sizeof(dir)/ sizeof(dir[0]);i++){ //percorre todos os "arquivos" do diretorio corrente
+		if(strcmp(dir[i].filename,name)==0){//verifica se é este a pasta solicitada.
+			return i;
+		}
+	}
+	return -1;
+}
+
+int isFile(dir_entry entry){
+	return 0;//criar mascara para verificar se é um diretorio ou um arquivo
+}
+
+
+int searchDirectory(char *directory){ 
+	// Search in current directory (one directory for time) if exist directory set in global directory and return 1; else return 0;
+	int dirPos = lookupFile(directory);
+	
+	if(dirPos != -1){
+		if(isFile(dir[dirPos])){
+			loadDirectory(dir[dirPos].first_block);
+		}
+	}
+	//int i;	
+	//for(i=0; i < sizeof(dir)/ sizeof(dir[0]);i++){ //percorre todos os "arquivos" do diretorio corrente
+	//	if(strcmp(dir[i].filename,directory)==0){//verifica se é este a pasta solicitada.
+	//		//carregar o arquivo
+	//		loadDirectory(dir[i].first_block);
+	//		break;
+	//	}
+	//}
+	//return 0;
+}
+
+void setDirectory(char *path){
+	loadRootDir();
+	int i=0;
+	int initDir = 0;
+	char *token;
+	path = strdup(path);
+	token = strtok(path, "/"); // ROOT
+	token = strtok(NULL,"/");	//PRIMEIRA PASTA
+	while(token != NULL){
+		searchDirectory(token);
+		printf("%s\n",token);
+		token = strtok(NULL,"/");
+	}
 }
 
 void printArray(uint32_t array[]){
@@ -132,23 +217,15 @@ void init(){
 	//printArray(fat);
 }; 
 
-int searchDirectory(char *directory){
-	//setar dir
-	int i;	
-	for(i=0; sizeof(dir)/ sizeof(dir[0]);i++){
-		dir[i];
-	}
-	//retorna 1 caso encontre, 0 caso não encontre
-	return 0;
-}
-
-
 void shell(){
-	char cmd[128];
-	while(cmd[0] != 2){
-		scanf("%s", &cmd[0]);	
+	//char cmd[128];
+	//while(cmd[0] != 2){
+	//	scanf("%s", &cmd[0]);	
 		//printf("%s\n",cmd[0] );
-	}
+	//}
+	
+
+
 }
 
 void load(){
@@ -157,7 +234,36 @@ void load(){
 	loadRootDir();
 }
 
-void makeDir();
+void makeDir(char *path, char *directory){
+	setDirectory(path);//carrega diretorio onde sera criado o diretorio
+	if(lookupFile(directory) != -1){
+		printf("Arquivo %s ja existente no diretorio %s",directory,path);
+		return;
+	}else{
+		int dirPos = searchFreePosition(); //posição dentro do diretorio local aonde sera salvo o nosso querido diretorio
+		int fatPos = searchFreePositionInFat(); //posição dentro da fat aonde sera salvo o nosso querido diretorio
+		if(fatPos==-1){
+			printf("Memoria cheia");
+			return;
+		}else if(dirPos==-1){
+			printf("Diretorio cheio");
+			return;
+		}
+		dir_entry entry;
+		entry.size = 0x00;
+		entry.first_block = fatPos;
+		strcpy(entry.filename,directory);
+		entry.attributes = 0x0;
+		int j;		
+		for(j=0; j< sizeof(entry.reserved)/ sizeof(entry.reserved[0]);j++){
+			entry.reserved[j]=0x0;
+		}
+		//setar reservados
+		dir[dirPos] = entry;
+
+
+	}
+}
 
 void makeFile();
 
@@ -166,21 +272,7 @@ void removeDir();
 void removeFile();
 
 void listDir(char *path){
-	loadRootDir();
-	int i=0;
-	int initDir = 0;
-	char *token;
-	path = strdup(path);
-	printf("%s\n",path);
-	token = strtok(path, "/"); // ROOT
-	printf("%s\n",token);
-	token = strtok(NULL,"/");	//PRIMEIRA PASTA
-	printf("%s\n",token);
-	while(token != NULL){
-		//searchDirectory(token);
-		printf("%s\n",token);
-		token = strtok(NULL,"/");
-	}
+	
 
 
 }
@@ -189,12 +281,12 @@ void write();
 
 void cat();
 
-
 int main(int argc, char const *argv[])
 {
 	init();
 	load();
-	listDir("/1/2/3/4");
+
+	makeDir("/","teste");
 
 
 	//shell();
