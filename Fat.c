@@ -30,7 +30,6 @@ void fillBoot(){
 	int i;
 	for (i = 0; i < CLUSTER; i++)
 	{
-		/* code */
 		boot[i] = 0xa5;
 	}
 	memoria_fat = fopen("fat.part","r+");
@@ -46,7 +45,6 @@ void fillFat(){
 	fat[2] = -1;
 	for (i = 3; i < sizeof(fat)/sizeof(fat[0]); i++)
 	{
-		/* code */
 		fat[i] = 0;
 	}
 	memoria_fat = fopen("fat.part","r+");
@@ -59,7 +57,6 @@ void fillRootDir(){
 	int i;
 	for (i = 0; i < sizeof(dir) / sizeof(dir[0]); i++)
 	{
-		/* code */
 		dir[i].size = 0x00;
 		dir[i].first_block = 0x00;
 		int j;
@@ -115,7 +112,11 @@ void loadDirectory(int fatPos){
 }
 
 void saveDirectory(){
-	//atualDirectory
+	//atualDirectory utlizando o valor de atualDirectory
+	memoria_fat = fopen("fat.part","r+");
+	fseek(memoria_fat, CLUSTER*atualDirectory, SEEK_SET);
+	fwrite(&dir, CLUSTER, 1, memoria_fat);
+	fclose(memoria_fat);
 }
 
 void saveFat(){
@@ -205,7 +206,6 @@ void printArray(uint32_t array[]){
 	printf("%d\n", sizeof(array)*256 );
 	for (i = 0; i < sizeof(array) *256; i++)
 	{
-		/* code */
 		printf("%d\n",array[i]);	
 	}
 }
@@ -238,6 +238,7 @@ void load(){
 }
 
 void makeDir(char *path, char *directory){
+	loadFat();
 	setDirectory(path);//carrega diretorio onde sera criado o diretorio
 	if(lookupFile(directory) != -1){
 		printf("Arquivo %s ja existente no diretorio %s",directory,path);
@@ -263,7 +264,9 @@ void makeDir(char *path, char *directory){
 		}
 		//setar reservados
 		dir[dirPos] = entry;
-
+		fat[fatPos] = -1;
+		saveFat();
+		saveDirectory();
 
 	}
 }
@@ -289,13 +292,19 @@ int main(int argc, char const *argv[])
 	init();
 	load();
 	/*Separando o diretorio do arquivo*/
-	char *path = "/teste/italo/i";
-	path = strdup(path);
-	printf("Path: %s\n",path);
-	printf("Basename: %s\n",basename(path));
-	printf("Dirname : %s\n",dirname(path));
-	makeDir(dirname(path),basename(path));
+	char *path = strdup("/newfolder");
+	char *bname = strdup(basename(path));
+	char *dname = strdup(dirname(path));
 	
+	printf("Path: %s\n",path);
+	printf("Basename: %s\n",bname);
+	printf("Dirname : %s\n",dname);
+	makeDir(dname,bname);
+
+	path = strdup("/newfolder2");
+	bname = strdup(basename(path));
+	dname = strdup(dirname(path));
+	makeDir(dname,bname);
 
 	//shell();
 	return 0;
