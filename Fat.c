@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
-
+#include <libgen.h>
 #ifndef CLUSTER
 #define CLUSTER 4096
 #endif
@@ -119,7 +119,10 @@ void saveDirectory(){
 }
 
 void saveFat(){
-
+	memoria_fat = fopen("fat.part","r+");
+	fseek(memoria_fat, CLUSTER, SEEK_SET);
+	fwrite(&fat, CLUSTER, 1, memoria_fat);
+	fclose(memoria_fat);
 }
 
 void loadRootDir(){
@@ -285,9 +288,14 @@ int main(int argc, char const *argv[])
 {
 	init();
 	load();
-
-	makeDir("/","teste");
-
+	/*Separando o diretorio do arquivo*/
+	char *path = "/teste/italo/i";
+	path = strdup(path);
+	printf("Path: %s\n",path);
+	printf("Basename: %s\n",basename(path));
+	printf("Dirname : %s\n",dirname(path));
+	makeDir(dirname(path),basename(path));
+	
 
 	//shell();
 	return 0;
