@@ -11,7 +11,6 @@
 //hexdump -C fat.part
 
 /* tabela FAT, 1024 entradas de 4 bytess */
-
 uint32_t fat[1024];
 
 /* entrada de diretorio, 32 bytes cada */
