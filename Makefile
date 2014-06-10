@@ -1,4 +1,4 @@
-all:clean compile run #hexdump
+all:compile run
 
 compile:
 	gcc Fat.c -o fat32

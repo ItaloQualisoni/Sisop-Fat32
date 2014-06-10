@@ -159,11 +159,11 @@ void loadRootDir(){
 }
 
 int isFile(dir_entry entry){
-	return (entry.attributes & mascDir)==0;//criar mascara para verificar se é um diretorio ou um arquivo
+	return (entry.attributes & mascDir)!=mascDir;//criar mascara para verificar se é um diretorio ou um arquivo
 }
 
 int isDeleted(dir_entry entry){
-	return (entry.attributes & mascDeleted)!= 0;
+	return (entry.attributes & mascDeleted)== mascDeleted;
 }
 
 int searchFreePositionInFat(){
@@ -394,8 +394,11 @@ void ls(char *path){
 	int i;
 	for (i = 0; i <sizeof(dir)/ sizeof(dir[0]) ; i++)
 	{
-		if(!isDeleted(dir[i]) && dir[i].filename[0]!=0){
-			printf("%s\n",dir[i].filename);
+		if(!isDeleted(dir[i]) && dir[i].filename[0]!=0 ){
+			if(isFile(dir[i]))
+				printf("Nome: %s  -- Size:%d \n",dir[i].filename,dir[i].size);
+			else
+				printf("Nome: %s/ -- Size:%d \n",dir[i].filename,dir[i].size);		
 		}
 	}
 }
@@ -412,11 +415,15 @@ void write(char *path, char *file, char *text){
 	int filePos = lookupFile(file);
 	if (filePos==-1)
 	{
-		printf("Arquivo não encontrado no diretorio%s\n",path);
+		printf("Arquivo %s não encontrado no diretorio %s\n",file,path);
 		return;
 	}else{
+		//verify if the file is deleted or a folder
+		if(!isFile(dir[filePos]) || isDeleted(dir[filePos])){
+			printf("Arquivo %s não encontrado no diretorio %s\n",file,path);
+			return ;
+		}
 		loadFat();
-
 		int fatPos = dir[filePos].first_block;
 
 		while(fat[fatPos]!=-1){
@@ -454,7 +461,8 @@ void write(char *path, char *file, char *text){
 	}
 }
 
-void cat(char *path, char *file){ //TODO revisar cat e write
+void cat(char *path, char *file){
+	loadFat();
 	setDirectory(path);
 	int filePos = lookupFile(file);
 	if (filePos==-1)
@@ -462,18 +470,27 @@ void cat(char *path, char *file){ //TODO revisar cat e write
 		printf("Arquivo não encontrado no diretorio%s\n",path);
 		return;
 	}else{
-		int teste;
+		//verify if the file is deleted or a folder
+		if(!isFile(dir[filePos]) || isDeleted(dir[filePos])){
+			printf("Arquivo não encontrado no diretorio%s\n",path);
+			return ;
+		}			
+		int i;
 		int fatPos = dir[filePos].first_block;
+		int size = dir[filePos].size;
+		int j = 0;
 		while(fat[fatPos]!=-1){
 			loadBlock(fatPos);
-			for(teste=0;teste<CLUSTER;teste++){
-				printf("%c",data[teste] );
+			for(i=0;i<CLUSTER;i++){
+				printf("%c",data[i] );
+				j++;
 			}
 			fatPos = fat[fatPos];
 		}
 		loadBlock(fatPos);
-		for(teste=0;teste<CLUSTER;teste++){
-			printf("%c",data[teste] );
+		for(i=0;i<CLUSTER && j<size;i++){
+			printf("%c",data[i] );
+			j++;
 		}
 		printf("\n");
 	}
@@ -482,9 +499,9 @@ void cat(char *path, char *file){ //TODO revisar cat e write
 
 void shell(){
 	while(1){
-		char cmd[100];
+		char cmd[1024];
 		printf("Digite o comando:");
-		fgets(cmd,100,stdin);
+		fgets(cmd,1024,stdin);
 		cmd[strlen(cmd)-1] = '\0';
 		char *opcao = strtok(cmd, " ");
 		if(strcmp("init",opcao) == 0){
@@ -521,7 +538,6 @@ void shell(){
 				cat(path,name);
 			}else if(strcmp("write",opcao)== 0){
 				char *text = strtok(NULL, " ");
-
 				if(text == NULL){
 					printf("dados a serem gravados não informados\n");
 					continue;
