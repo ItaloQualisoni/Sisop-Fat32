@@ -26,6 +26,7 @@ typedef struct  {
 dir_entry dir[128];
 int atualDirectory=2;//rootDir
 char data[CLUSTER];
+int isInit = 0;
 
 
 FILE  *memoria_fat;
@@ -236,17 +237,29 @@ void init(){
 	fillFat();
 	fillRootDir();
 	fillDataCluster();
+	isInit = 1;
 }; 
 
 
 
 void load(){
+	FILE* fptr = fopen("fat.part", "r");
+ 	 if (fptr == NULL)
+  	{
+		printf("Arquivo fat não encontrado\n");
+		return;
+	}
 	loadBoot();
 	loadFat();
 	loadRootDir();
+	isInit = 1;
 }
 
 void makeDir(char *path, char *directory){
+	if(directory[0]== '/'){
+		printf("informe o diretorio a ser criado\n");
+		return;
+	}
 	loadFat();
 	//carrega diretorio onde sera criado o diretorio e verifica se este existe
 	if(setDirectory(path) == 0 ){
@@ -521,6 +534,9 @@ void shell(){
 		}else if(strcmp("exit",opcao)== 0){
 			printf("volte sempre\n");
 			return;
+		}else if(isInit==0){
+			printf("Inicialize/Carregue a fat para utilizar este comando\n");
+			continue;
 		}else if(strcmp("ls",opcao)== 0){
 				char *path = strtok(NULL, " ");
 				if(path == NULL){
