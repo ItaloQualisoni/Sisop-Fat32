@@ -335,6 +335,9 @@ void removeFile(char *path, char *file){
 	if(dirPos == -1){
 		printf("Arquivo %s não existente no diretorio %s\n",file,path);
 		return;
+	}else if(!isFile(dir[dirPos])){
+		printf("%s é um diretorio e não será removido\n",file);
+		return;
 	}
 
 	int fatPos = dir[dirPos].first_block;
@@ -359,14 +362,14 @@ void rmDir(char *path, char *directory){
 		return;
 	}
 	int dirPos = lookupFile(directory);
-	if(dirPos == -1){
-		printf("Arquivo %s não existente no diretorio %s\n",directory,path);
+	if(dirPos == -1 || isFile(dir[dirPos])){
+		printf("%s não existente no diretorio %s\n",directory,path);
 		return;
 	}
 	int i;
 	char *pathv1= strcat(strdup("/"),directory);
-	char *pathv2= strdup(strcat(strdup(path),pathv1));
-			
+	char *pathv2= path[strlen(path)-1] == '/' ? pathv1 : strdup(strcat(strdup(path),pathv1));
+	setDirectory(pathv2); //Seta para pasta que será removida(para buscar as subpastas/arquivos)		
 	for (i = 0; i <sizeof(dir)/ sizeof(dir[0]) ; i++)
 	{
 		if(!isDeleted(dir[i]) && dir[i].filename[0] !=0){
@@ -396,9 +399,9 @@ void ls(char *path){
 	{
 		if(!isDeleted(dir[i]) && dir[i].filename[0]!=0 ){
 			if(isFile(dir[i]))
-				printf("Nome: %s  -- Size:%d \n",dir[i].filename,dir[i].size);
+				printf("Arquivo: %s  -- Size:%d \n",dir[i].filename,dir[i].size);
 			else
-				printf("Nome: %s/ -- Size:%d \n",dir[i].filename,dir[i].size);		
+				printf("Diretorio: %s/ -- Size:%d \n",dir[i].filename,dir[i].size);		
 		}
 	}
 }
@@ -411,7 +414,9 @@ void cleanData(){
 }
 
 void write(char *path, char *file, char *text){
-	setDirectory(path);
+	if( setDirectory(path) == 0){
+		return;
+	}
 	int filePos = lookupFile(file);
 	if (filePos==-1)
 	{
@@ -502,7 +507,12 @@ void shell(){
 		char cmd[1024];
 		printf("Digite o comando:");
 		fgets(cmd,1024,stdin);
-		cmd[strlen(cmd)-1] = '\0';
+		if(strlen(cmd)<=1){
+			printf("Comando não informado\n");			
+			continue;
+		}
+		cmd[strlen(cmd)-1] = '\0';		
+		fseek(stdin,0,SEEK_SET);
 		char *opcao = strtok(cmd, " ");
 		if(strcmp("init",opcao) == 0){
 			init();
